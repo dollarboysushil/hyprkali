@@ -37,6 +37,7 @@ FILES=(
     "$HOME/.local/bin/clock-popup-toggle"
     "$HOME/.local/bin/powermenu"
     "$HOME/.local/bin/screenshot"
+    "$HOME/.local/bin/taskbar-slot"
     "$HOME/.local/bin/taskbar-watch"
     "$HOME/.local/bin/thunar"
     "$HOME/.local/bin/wallpaper-set"

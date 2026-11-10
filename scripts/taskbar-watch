@@ -26,6 +26,7 @@ The daemon writes to ``$XDG_CACHE_HOME/waybar-taskbar``::
 from __future__ import annotations
 
 import fcntl
+import io
 import json
 import math
 import os
@@ -38,7 +39,8 @@ import time
 from pathlib import Path
 
 MAX_SLOTS = 10
-WAYBAR_SIGNAL = 10  # SIGRTMIN+10, matched by "signal": 10 in Waybar
+WAYBAR_SIGNAL_BASE = 10  # slot N uses SIGRTMIN+10+N, matched in config.jsonc
+MIN_RENDER_INTERVAL = 0.012  # cap bar refreshes at ~80/s, even during a burst
 ICON_SIZE = 28  # logical pixels inside the icon canvas
 CANVAS = 36  # 2x canvas, downscaled by Waybar to its "size": 18
 ICON_CACHE_DIR = Path(
@@ -93,9 +95,75 @@ def atomic_write(path: Path, data: str) -> None:
     os.replace(tmp, path)
 
 
-def hyprctl_json(*args: str) -> object:
+def atomic_write_bytes(path: Path, data: bytes) -> None:
+    tmp = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    tmp.write_bytes(data)
+    os.replace(tmp, path)
+
+
+def _runtime_dir() -> Path:
+    return Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"))
+
+
+def _instance_dirs() -> list[Path]:
+    base = _runtime_dir() / "hypr"
+    signature = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
+    if signature:
+        candidate = base / signature
+        if (candidate / ".socket.sock").exists():
+            return [candidate]
+    try:
+        return [
+            item for item in base.glob("*") if (item / ".socket.sock").exists()
+        ]
+    except OSError:
+        return []
+
+
+def _socket_path(name: str) -> Path | None:
+    candidates = [
+        directory / name
+        for directory in _instance_dirs()
+        if (directory / name).exists()
+    ]
+    if not candidates:
+        return None
+    try:
+        return max(candidates, key=lambda item: item.stat().st_mtime)
+    except OSError:
+        return None
+
+
+_query_socket: Path | None = None
+
+
+def query_json(kind: str) -> object:
+    """Read Hyprland state over its IPC socket instead of spawning hyprctl."""
+    global _query_socket
+    if _query_socket is not None and not _query_socket.exists():
+        _query_socket = None
+
+    path = _query_socket or _socket_path(".socket.sock")
+    if path is not None:
+        try:
+            with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as connection:
+                connection.settimeout(1.0)
+                connection.connect(str(path))
+                connection.sendall(b"j/" + kind.encode())
+                chunks = []
+                while True:
+                    chunk = connection.recv(65536)
+                    if not chunk:
+                        break
+                    chunks.append(chunk)
+            if chunks:
+                _query_socket = path
+                return json.loads(b"".join(chunks).decode("utf-8", "replace"))
+        except (OSError, ValueError):
+            _query_socket = None
+
     output = subprocess.check_output(
-        ["hyprctl", *args, "-j"],
+        ["hyprctl", kind, "-j"],
         text=True,
         stderr=subprocess.DEVNULL,
         timeout=3,
@@ -103,18 +171,42 @@ def hyprctl_json(*args: str) -> object:
     return json.loads(output) if output.strip() else {}
 
 
-def signal_waybar() -> None:
+_waybar_pids: list[int] = []
+_waybar_scan = 0.0
+
+
+def _scan_waybar(refresh: bool = False) -> list[int]:
+    global _waybar_pids, _waybar_scan
+    now = time.monotonic()
+    if not refresh and _waybar_pids and now - _waybar_scan < 10:
+        return _waybar_pids
     try:
-        pids = subprocess.check_output(
-            ["pgrep", "-x", "waybar"], text=True, stderr=subprocess.DEVNULL
-        ).split()
-    except (OSError, subprocess.CalledProcessError):
+        _waybar_pids = [
+            int(raw)
+            for raw in subprocess.check_output(
+                ["pgrep", "-x", "waybar"], text=True, stderr=subprocess.DEVNULL
+            ).split()
+        ]
+    except (OSError, subprocess.CalledProcessError, ValueError):
+        _waybar_pids = []
+    _waybar_scan = now
+    return _waybar_pids
+
+
+def signal_waybar(slots: set[int]) -> None:
+    if not slots:
         return
-    for raw in pids:
-        try:
-            os.kill(int(raw), signal.SIGRTMIN + WAYBAR_SIGNAL)
-        except (OSError, ValueError):
-            pass
+    pids = _scan_waybar()
+    for pid in pids:
+        for index in slots:
+            try:
+                os.kill(pid, signal.SIGRTMIN + WAYBAR_SIGNAL_BASE + index)
+            except ProcessLookupError:
+                # Waybar was restarted; pick up the new PID next time.
+                _scan_waybar(refresh=True)
+                return
+            except OSError:
+                pass
 
 
 # ---------------------------------------------------------------------------
@@ -277,7 +369,16 @@ def _rounded_rect(cr, x: float, y: float, w: float, h: float, r: float) -> None:
     cr.close_path()
 
 
-def render_icon(icon_path: str | None, output: Path, active: bool, hidden: bool) -> None:
+_render_cache: dict[tuple[str, bool, bool], bytes] = {}
+
+
+def render_icon(icon_path: str | None, active: bool, hidden: bool) -> bytes:
+    """Return the rendered PNG bytes (cached per icon and state)."""
+    key = (icon_path or "", active, hidden)
+    cached = _render_cache.get(key)
+    if cached is not None:
+        return cached
+
     import cairo
     import gi
 
@@ -315,9 +416,14 @@ def render_icon(icon_path: str | None, output: Path, active: bool, hidden: bool)
         cr.set_source_rgba(51 / 255, 204 / 255, 255 / 255, 1)
         cr.fill()
 
-    tmp = output.with_name(f".{output.name}.{os.getpid()}.tmp")
-    surface.write_to_png(str(tmp))
-    os.replace(tmp, output)
+    buffer = io.BytesIO()
+    surface.write_to_png(buffer)
+    data = buffer.getvalue()
+
+    if len(_render_cache) > 256:
+        _render_cache.clear()
+    _render_cache[key] = data
+    return data
 
 
 # ---------------------------------------------------------------------------
@@ -335,95 +441,130 @@ def _clean_title(value: str) -> str:
     return " ".join((value or "").split())
 
 
+def _window_state(window: dict, active_address: str | None) -> dict:
+    address = window.get("address") or ""
+    return {
+        "address": address,
+        "class": (window.get("class") or window.get("initialClass") or "").strip(),
+        "title": _clean_title(window.get("title") or ""),
+        "hidden": bool(window.get("hidden")),
+        "active": bool(address) and address == active_address,
+    }
+
+
 def render() -> None:
     directory = cache_dir()
     (directory / "empty.png").unlink(missing_ok=True)
 
-    clients = hyprctl_json("clients")
+    clients = query_json("clients")
     if not isinstance(clients, list):
         clients = []
 
-    active_workspace = hyprctl_json("activeworkspace")
+    active_workspace = query_json("activeworkspace")
     workspace_id = active_workspace.get("id") if isinstance(active_workspace, dict) else None
 
-    active_window = hyprctl_json("activewindow")
-    active_address = (
-        active_window.get("address") if isinstance(active_window, dict) else None
-    )
+    # focusHistoryID 0 is the focused window, so clients is the only query needed.
+    active_address = None
+    for window in clients:
+        if window.get("focusHistoryID") == 0:
+            active_address = window.get("address")
+            break
 
-    windows = [w for w in clients if _workspace_id(w) == workspace_id]
+    windows = [
+        _window_state(window, active_address)
+        for window in clients
+        if _workspace_id(window) == workspace_id
+    ]
 
-    previous = {}
+    signature = [
+        workspace_id,
+        active_address,
+        [
+            [w["address"], w["class"], w["title"], w["hidden"], w["active"]]
+            for w in windows
+        ],
+    ]
+
     state_file = directory / "state.json"
     try:
         previous = json.loads(state_file.read_text())
     except (OSError, ValueError):
         previous = {}
+    if not isinstance(previous, dict):
+        previous = {}
 
-    # Leave the icons alone when nothing that affects the bar has changed.
-    signature = (
-        workspace_id,
-        active_address,
-        [
-            (
-                w.get("address"),
-                w.get("class") or w.get("initialClass") or "",
-                w.get("title") or "",
-                bool(w.get("hidden")),
-            )
-            for w in windows
-        ],
-    )
-    if previous.get("signature") == list(signature):
+    # Leave the bar alone when nothing that affects it has changed.
+    if previous.get("signature") == signature:
         return
 
+    previous_slots = {
+        slot.get("slot"): slot
+        for slot in previous.get("slots", [])
+        if isinstance(slot, dict)
+    }
+
+    empty_path = str(directory / "empty.png")
     slots = []
+    dirty_slots: set[int] = set()
+
     for index in range(MAX_SLOTS):
         icon_file = directory / f"slot-{index}.png"
         path_file = directory / f"slot-{index}.path"
         tooltip_file = directory / f"slot-{index}.tooltip"
+        old = previous_slots.get(index)
 
         if index >= len(windows):
             icon_file.unlink(missing_ok=True)
-            atomic_write(path_file, str(directory / "empty.png"))
-            atomic_write(tooltip_file, "")
+            try:
+                stale = path_file.read_text().strip() != empty_path
+            except OSError:
+                stale = True
+            if old is not None or stale or not tooltip_file.exists():
+                atomic_write(path_file, empty_path)
+                atomic_write(tooltip_file, "")
+                dirty_slots.add(index)
             continue
 
         window = windows[index]
-        klass = (window.get("class") or window.get("initialClass") or "").strip()
-        title = _clean_title(window.get("title") or "")
-        address = window.get("address") or ""
-        hidden = bool(window.get("hidden"))
-        is_active = bool(address) and address == active_address
+        slot_state = {
+            "slot": index,
+            "address": window["address"],
+            "class": window["class"],
+            "title": window["title"],
+            "hidden": window["hidden"],
+            "active": window["active"],
+        }
+        slots.append(slot_state)
+        dirty = old != slot_state or not icon_file.exists()
 
-        icon_path = icon_for_class(klass)
+        icon_path = icon_for_class(window["class"])
         try:
-            render_icon(icon_path, icon_file, is_active, hidden)
-            visible_path = str(icon_file)
+            png = render_icon(icon_path, window["active"], window["hidden"])
         except Exception as error:
-            print(f"taskbar-watch: cannot render {klass}: {error}", file=sys.stderr)
-            icon_file.unlink(missing_ok=True)
-            visible_path = str(directory / "empty.png")
+            print(f"taskbar-watch: cannot render {window['class']}: {error}", file=sys.stderr)
+            png = None
 
-        atomic_write(path_file, visible_path)
-        atomic_write(tooltip_file, title or klass or "Window")
-        slots.append(
-            {
-                "slot": index,
-                "address": address,
-                "class": klass,
-                "title": title,
-            }
-        )
+        if png is None:
+            icon_file.unlink(missing_ok=True)
+            visible_path = empty_path
+        else:
+            if dirty:
+                atomic_write_bytes(icon_file, png)
+            visible_path = str(icon_file)
+
+        if dirty or not path_file.exists() or not tooltip_file.exists():
+            atomic_write(path_file, visible_path)
+            atomic_write(tooltip_file, window["title"] or window["class"] or "Window")
+            dirty_slots.add(index)
 
     state = {
         "workspace": workspace_id,
         "active": active_address,
-        "signature": list(signature),
+        "signature": signature,
         "slots": slots,
     }
     atomic_write(state_file, json.dumps(state))
-    signal_waybar()
+    signal_waybar(dirty_slots)
 
 
 # ---------------------------------------------------------------------------
@@ -468,7 +609,7 @@ def click(action: str, index: int) -> None:
         return
 
     try:
-        clients = hyprctl_json("clients")
+        clients = query_json("clients")
     except Exception:
         return
     if not any(w.get("address") == address for w in clients):
@@ -538,20 +679,8 @@ def _safe_render() -> None:
 
 
 def _event_socket() -> Path | None:
-    runtime = Path(os.environ.get("XDG_RUNTIME_DIR", f"/run/user/{os.getuid()}"))
-    base = runtime / "hypr"
-    signature = os.environ.get("HYPRLAND_INSTANCE_SIGNATURE")
-    if signature:
-        candidate = base / signature / ".socket2.sock"
-        if candidate.exists():
-            return candidate
-    try:
-        candidates = sorted(
-            base.glob("*/.socket2.sock"), key=lambda item: item.stat().st_mtime
-        )
-    except OSError:
-        return None
-    return candidates[-1] if candidates else None
+    path = _socket_path(".socket2.sock")
+    return path
 
 
 def watch() -> None:
@@ -589,7 +718,14 @@ def watch() -> None:
 
         try:
             while True:
-                readable, _, _ = select.select([connection], [], [], 0.2)
+                now = time.monotonic()
+                timeout = 0.25
+                if pending:
+                    # Wake up when the throttle window ends, so the last event
+                    # of a burst never waits for another event to arrive.
+                    timeout = max(0.0, MIN_RENDER_INTERVAL - (now - last_render))
+
+                readable, _, _ = select.select([connection], [], [], timeout)
                 if readable:
                     chunk = connection.recv(65536)
                     if not chunk:
@@ -601,7 +737,7 @@ def watch() -> None:
                         if event in RELEVANT_EVENTS:
                             pending = True
 
-                if pending and time.monotonic() - last_render >= 0.08:
+                if pending and time.monotonic() - last_render >= MIN_RENDER_INTERVAL:
                     _safe_render()
                     pending = False
                     last_render = time.monotonic()

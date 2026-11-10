@@ -376,7 +376,7 @@ render_template "$REPO_DIR/config/hypr/hyprlock.conf.in" \
 info "Installing helper scripts"
 mkdir -p "$HOME/.local/bin"
 for script in clipboard-history clock-popup clock-popup-toggle powermenu \
-              screenshot taskbar-watch thunar wallpaper-set wallpaper-watch; do
+              screenshot taskbar-slot taskbar-watch thunar wallpaper-set wallpaper-watch; do
     install_file "$REPO_DIR/scripts/$script" "$HOME/.local/bin/$script" 755
 done
 

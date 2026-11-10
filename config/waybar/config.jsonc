@@ -118,7 +118,7 @@
         "tooltip-format": "{timeTo}\n{capacity}%  ·  {power} W"
     },
     "image#task0": {
-        "exec": "taskbar-watch slot 0",
+        "exec": "taskbar-slot 0",
         "size": 18,
         "signal": 10,
         "tooltip": true,
@@ -127,81 +127,81 @@
         "interval": "once"
     },
     "image#task1": {
-        "exec": "taskbar-watch slot 1",
+        "exec": "taskbar-slot 1",
         "size": 18,
-        "signal": 10,
+        "signal": 11,
         "tooltip": true,
         "on-click": "taskbar-watch click focus 1",
         "on-click-middle": "taskbar-watch click close 1",
         "interval": "once"
     },
     "image#task2": {
-        "exec": "taskbar-watch slot 2",
+        "exec": "taskbar-slot 2",
         "size": 18,
-        "signal": 10,
+        "signal": 12,
         "tooltip": true,
         "on-click": "taskbar-watch click focus 2",
         "on-click-middle": "taskbar-watch click close 2",
         "interval": "once"
     },
     "image#task3": {
-        "exec": "taskbar-watch slot 3",
+        "exec": "taskbar-slot 3",
         "size": 18,
-        "signal": 10,
+        "signal": 13,
         "tooltip": true,
         "on-click": "taskbar-watch click focus 3",
         "on-click-middle": "taskbar-watch click close 3",
         "interval": "once"
     },
     "image#task4": {
-        "exec": "taskbar-watch slot 4",
+        "exec": "taskbar-slot 4",
         "size": 18,
-        "signal": 10,
+        "signal": 14,
         "tooltip": true,
         "on-click": "taskbar-watch click focus 4",
         "on-click-middle": "taskbar-watch click close 4",
         "interval": "once"
     },
     "image#task5": {
-        "exec": "taskbar-watch slot 5",
+        "exec": "taskbar-slot 5",
         "size": 18,
-        "signal": 10,
+        "signal": 15,
         "tooltip": true,
         "on-click": "taskbar-watch click focus 5",
         "on-click-middle": "taskbar-watch click close 5",
         "interval": "once"
     },
     "image#task6": {
-        "exec": "taskbar-watch slot 6",
+        "exec": "taskbar-slot 6",
         "size": 18,
-        "signal": 10,
+        "signal": 16,
         "tooltip": true,
         "on-click": "taskbar-watch click focus 6",
         "on-click-middle": "taskbar-watch click close 6",
         "interval": "once"
     },
     "image#task7": {
-        "exec": "taskbar-watch slot 7",
+        "exec": "taskbar-slot 7",
         "size": 18,
-        "signal": 10,
+        "signal": 17,
         "tooltip": true,
         "on-click": "taskbar-watch click focus 7",
         "on-click-middle": "taskbar-watch click close 7",
         "interval": "once"
     },
     "image#task8": {
-        "exec": "taskbar-watch slot 8",
+        "exec": "taskbar-slot 8",
         "size": 18,
-        "signal": 10,
+        "signal": 18,
         "tooltip": true,
         "on-click": "taskbar-watch click focus 8",
         "on-click-middle": "taskbar-watch click close 8",
         "interval": "once"
     },
     "image#task9": {
-        "exec": "taskbar-watch slot 9",
+        "exec": "taskbar-slot 9",
         "size": 18,
-        "signal": 10,
+        "signal": 19,
         "tooltip": true,
         "on-click": "taskbar-watch click focus 9",
         "on-click-middle": "taskbar-watch click close 9",
