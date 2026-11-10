@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+# Power menu - rofi dmenu
+
+set -euo pipefail
+
+if ! command -v rofi >/dev/null 2>&1; then
+    echo "rofi is not installed" >&2
+    exit 1
+fi
+
+choice=$(printf '%s\n' \
+    "Lock" \
+    "Log out" \
+    "Suspend" \
+    "Reboot" \
+    "Shut down" \
+    | rofi -dmenu -i -no-custom -no-show-icons -p "Power" -theme-str 'window {width: 300px;} listview {lines: 5;} element-icon {size: 0px;} entry {placeholder: "Select an action…";}')
+
+[ -z "${choice:-}" ] && exit 0
+
+confirm() {
+    local answer
+    answer=$(printf 'No\nYes\n' | rofi -dmenu -i -no-custom -no-show-icons -p "$1" -theme-str 'window {width: 300px;} listview {lines: 2;} element-icon {size: 0px;}')
+    [ "$answer" = "Yes" ]
+}
+
+case "$choice" in
+    *Lock)
+        hyprlock &
+        ;;
+    *"Log out")
+        if confirm "Log out?"; then
+            hyprctl dispatch 'hl.dsp.exit()'
+        fi
+        ;;
+    *Suspend)
+        loginctl lock-session
+        systemctl suspend
+        ;;
+    *Reboot)
+        if confirm "Reboot?"; then
+            systemctl reboot
+        fi
+        ;;
+    *"Shut down")
+        if confirm "Shut down?"; then
+            systemctl poweroff
+        fi
+        ;;
+esac

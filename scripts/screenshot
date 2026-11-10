@@ -1,0 +1,70 @@
+#!/usr/bin/env bash
+# Windows Snipping Tool style screenshot for Hyprland.
+#   screenshot          -> select a region, save + copy to clipboard
+#   screenshot full     -> capture the whole screen, save + copy
+#
+# Saved to ~/Pictures/Screenshots, copied to the Wayland clipboard, and
+# shown as a notification with a preview + quick actions.
+
+set -uo pipefail
+
+mode="${1:-region}"
+dir="$HOME/Pictures/Screenshots"
+mkdir -p "$dir"
+
+stamp="$(date +%Y-%m-%d_%H-%M-%S)"
+file="$dir/Screenshot_${stamp}.png"
+
+fail() {
+    notify-send -a "Screenshot" -u critical "Screenshot failed" "$1" 2>/dev/null || true
+    exit 1
+}
+
+case "$mode" in
+    region)
+        command -v slurp >/dev/null 2>&1 || fail "slurp is not installed"
+        command -v grim  >/dev/null 2>&1 || fail "grim is not installed"
+
+        # Dim the screen like the Windows snipping overlay, then drag a box.
+        geometry="$(slurp -d \
+            -b '#0d1117aa' \
+            -c '#33ccffff' \
+            -s '#33ccff22' \
+            -w 2 2>/dev/null)" || exit 0
+
+        [ -z "${geometry:-}" ] && exit 0
+        grim -g "$geometry" "$file" || fail "Could not capture the selected area"
+        ;;
+    full)
+        command -v grim >/dev/null 2>&1 || fail "grim is not installed"
+        grim "$file" || fail "Could not capture the screen"
+        ;;
+    *)
+        echo "usage: screenshot [region|full]" >&2
+        exit 2
+        ;;
+esac
+
+# Put the PNG on the clipboard (same as Windows snipping tool).
+if command -v wl-copy >/dev/null 2>&1; then
+    wl-copy --type image/png < "$file" 2>/dev/null || true
+fi
+
+# Notification with a real preview and Windows-like actions.
+if command -v notify-send >/dev/null 2>&1; then
+    (
+        action="$(notify-send \
+            -a "Screenshot" \
+            -i "$file" \
+            -h "string:image-path:$file" \
+            -A "default=Open" \
+            -A "folder=Open folder" \
+            "Screenshot saved" \
+            "$(basename "$file")  ·  copied to clipboard" 2>/dev/null)" || true
+
+        case "${action:-}" in
+            default) xdg-open "$file" >/dev/null 2>&1 & ;;
+            folder)  xdg-open "$dir"  >/dev/null 2>&1 & ;;
+        esac
+    ) &
+fi

@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Toggle the clock flyout: clicking the Waybar clock opens it, clicking again closes it.
+
+if pgrep -f "/clock-popup$" >/dev/null 2>&1; then
+    pkill -f "/clock-popup$"
+else
+    exec "$HOME/.local/bin/clock-popup"
+fi

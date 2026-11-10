@@ -1,0 +1,210 @@
+{
+    "layer": "top",
+    "position": "top",
+    "height": 30,
+    "spacing": 2,
+    "margin-top": 0,
+    "margin-left": 0,
+    "margin-right": 0,
+    "modules-left": [
+        "hyprland/workspaces",
+        "image#task0",
+        "image#task1",
+        "image#task2",
+        "image#task3",
+        "image#task4",
+        "image#task5",
+        "image#task6",
+        "image#task7",
+        "image#task8",
+        "image#task9"
+    ],
+    "modules-center": [
+        "clock"
+    ],
+    "modules-right": [
+        "tray",
+        "network",
+        "bluetooth",
+        "pulseaudio",
+        "cpu",
+        "memory",
+        "battery"
+    ],
+    "hyprland/workspaces": {
+        "format": "{id}",
+        "on-click": "activate",
+        "on-click-right": "close",
+        "on-scroll-up": "hyprctl dispatch 'hl.dsp.focus({ workspace = \"e-1\" })'",
+        "on-scroll-down": "hyprctl dispatch 'hl.dsp.focus({ workspace = \"e+1\" })'",
+        "persistent-workspaces": {
+            "*": 5
+        }
+    },
+    "clock": {
+        "format": "{:%H:%M   %a %d %b}",
+        "on-click": "clock-popup-toggle",
+        "tooltip": false
+    },
+    "tray": {
+        "icon-size": 14,
+        "spacing": 6
+    },
+    "network": {
+        "interval": 3,
+        "format-wifi": "   {signalStrength}%",
+        "format-ethernet": "   {ipaddr}",
+        "format-linked": "   {ifname}",
+        "format-disconnected": "   offline",
+        "format-alt": "   {essid}",
+        "tooltip-format-wifi": "{essid} ({signalStrength}%)\n{ifname}: {ipaddr}",
+        "tooltip-format-ethernet": "{ifname}: {ipaddr}",
+        "tooltip-format-disconnected": "Disconnected",
+        "on-click": "nm-connection-editor"
+    },
+    "bluetooth": {
+        "format": " ",
+        "format-connected": "   {num_connections}",
+        "format-disabled": "",
+        "format-off": "",
+        "tooltip-format": "{controller_alias}\t{controller_address}",
+        "tooltip-format-connected": "{controller_alias}\t{controller_address}\n\n{num_connections} connected",
+        "tooltip-format-enumerate-connected": "{device_alias}\t{device_address}",
+        "on-click": "blueman-manager"
+    },
+    "pulseaudio": {
+        "format": " {icon}  {volume}%",
+        "format-muted": "   muted",
+        "format-icons": {
+            "default": [
+                "",
+                "",
+                ""
+            ]
+        },
+        "on-click": "pavucontrol",
+        "on-click-right": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle",
+        "on-scroll-up": "wpctl set-volume -l 1 @DEFAULT_AUDIO_SINK@ 2%+",
+        "on-scroll-down": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-",
+        "tooltip-format": "{desc}  ·  {volume}%"
+    },
+    "cpu": {
+        "interval": 3,
+        "format": "   {usage}%",
+        "tooltip": false
+    },
+    "memory": {
+        "interval": 5,
+        "format": "   {percentage}%",
+        "tooltip-format": "{used} / {total} GiB"
+    },
+    "battery": {
+        "interval": 30,
+        "states": {
+            "warning": 30,
+            "critical": 15
+        },
+        "format": "{icon}  {capacity}%",
+        "format-charging": "   {capacity}%",
+        "format-plugged": "   {capacity}%",
+        "format-full": "   {capacity}%",
+        "format-icons": [
+            "",
+            "",
+            "",
+            "",
+            ""
+        ],
+        "tooltip-format": "{timeTo}\n{capacity}%  ·  {power} W"
+    },
+    "image#task0": {
+        "exec": "taskbar-watch slot 0",
+        "size": 18,
+        "signal": 10,
+        "tooltip": true,
+        "on-click": "taskbar-watch click focus 0",
+        "on-click-middle": "taskbar-watch click close 0",
+        "interval": "once"
+    },
+    "image#task1": {
+        "exec": "taskbar-watch slot 1",
+        "size": 18,
+        "signal": 10,
+        "tooltip": true,
+        "on-click": "taskbar-watch click focus 1",
+        "on-click-middle": "taskbar-watch click close 1",
+        "interval": "once"
+    },
+    "image#task2": {
+        "exec": "taskbar-watch slot 2",
+        "size": 18,
+        "signal": 10,
+        "tooltip": true,
+        "on-click": "taskbar-watch click focus 2",
+        "on-click-middle": "taskbar-watch click close 2",
+        "interval": "once"
+    },
+    "image#task3": {
+        "exec": "taskbar-watch slot 3",
+        "size": 18,
+        "signal": 10,
+        "tooltip": true,
+        "on-click": "taskbar-watch click focus 3",
+        "on-click-middle": "taskbar-watch click close 3",
+        "interval": "once"
+    },
+    "image#task4": {
+        "exec": "taskbar-watch slot 4",
+        "size": 18,
+        "signal": 10,
+        "tooltip": true,
+        "on-click": "taskbar-watch click focus 4",
+        "on-click-middle": "taskbar-watch click close 4",
+        "interval": "once"
+    },
+    "image#task5": {
+        "exec": "taskbar-watch slot 5",
+        "size": 18,
+        "signal": 10,
+        "tooltip": true,
+        "on-click": "taskbar-watch click focus 5",
+        "on-click-middle": "taskbar-watch click close 5",
+        "interval": "once"
+    },
+    "image#task6": {
+        "exec": "taskbar-watch slot 6",
+        "size": 18,
+        "signal": 10,
+        "tooltip": true,
+        "on-click": "taskbar-watch click focus 6",
+        "on-click-middle": "taskbar-watch click close 6",
+        "interval": "once"
+    },
+    "image#task7": {
+        "exec": "taskbar-watch slot 7",
+        "size": 18,
+        "signal": 10,
+        "tooltip": true,
+        "on-click": "taskbar-watch click focus 7",
+        "on-click-middle": "taskbar-watch click close 7",
+        "interval": "once"
+    },
+    "image#task8": {
+        "exec": "taskbar-watch slot 8",
+        "size": 18,
+        "signal": 10,
+        "tooltip": true,
+        "on-click": "taskbar-watch click focus 8",
+        "on-click-middle": "taskbar-watch click close 8",
+        "interval": "once"
+    },
+    "image#task9": {
+        "exec": "taskbar-watch slot 9",
+        "size": 18,
+        "signal": 10,
+        "tooltip": true,
+        "on-click": "taskbar-watch click focus 9",
+        "on-click-middle": "taskbar-watch click close 9",
+        "interval": "once"
+    }
+}

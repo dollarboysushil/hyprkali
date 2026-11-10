@@ -1,0 +1,101 @@
+/* Rofi - dark glass theme matching Waybar (Rofi 2.0 variable-based) */
+
+* {
+    background: #0d1117;
+    foreground: #e6edf3;
+    normal-background: #0d1117;
+    normal-foreground: #e6edf3;
+    alternate-normal-background: #11161d;
+    alternate-normal-foreground: #c9d1d9;
+    selected-normal-background: #1d5a70;
+    selected-normal-foreground: #ffffff;
+    urgent-background: #ff5f56;
+    urgent-foreground: #0d1117;
+    active-background: #0d1117;
+    active-foreground: #33ccff;
+    border-color: #33ccff;
+    separatorcolor: #223040;
+    background-color: #0d1117;
+}
+
+window {
+    width: 640px;
+    background-color: #0d1117;
+    border: 1px;
+    border-color: #33ccff;
+    border-radius: 14px;
+    padding: 8px;
+}
+
+mainbox {
+    children: [inputbar, listview];
+    spacing: 8px;
+}
+
+inputbar {
+    children: [prompt, entry];
+    background-color: #161b22;
+    border-radius: 10px;
+    padding: 9px 12px;
+}
+
+prompt {
+    text-color: #33ccff;
+    background-color: #161b22;
+    border-radius: 6px;
+    padding: 2px 8px;
+    margin: 0 8px 0 0;
+}
+
+entry {
+    placeholder: "Search apps…";
+    placeholder-color: #7d8590;
+    text-color: #e6edf3;
+    background-color: #161b22;
+}
+
+listview {
+    lines: 8;
+    columns: 1;
+    spacing: 2px;
+    padding: 4px 2px;
+    background-color: #0d1117;
+    scrollbar: false;
+}
+
+element {
+    padding: 8px 10px;
+    border-radius: 8px;
+    spacing: 10px;
+}
+
+element normal.normal {
+    background-color: #0d1117;
+    text-color: #e6edf3;
+}
+
+element alternate.normal {
+    background-color: #11161d;
+    text-color: #e6edf3;
+}
+
+element selected,
+element selected.normal {
+    background-color: #1d5a70;
+    text-color: #ffffff;
+}
+
+element-text {
+    background-color: transparent;
+    text-color: #e6edf3;
+    vertical-align: 0.5;
+}
+
+element selected element-text {
+    background-color: transparent;
+    text-color: #ffffff;
+}
+
+element-icon {
+    size: 22px;
+}

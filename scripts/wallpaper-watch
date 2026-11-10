@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+"""Apply wallpapers chosen through Thunar's "Set as wallpaper" action.
+
+Thunar's XFCE wallpaper plugin stores the chosen image in the xfce4-desktop
+xfconf channel. Under Hyprland nothing consumes that setting, so this daemon
+watches the channel and forwards new images to hyprpaper.
+"""
+
+from __future__ import annotations
+
+import fcntl
+import os
+import re
+import shutil
+import subprocess
+import time
+from pathlib import Path
+
+SETTER = Path.home() / ".local/bin/wallpaper-set"
+CHANNEL = "xfce4-desktop"
+IMAGE_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp", ".bmp", ".jxl", ".avif"}
+LOCK_PATH = Path(os.environ.get("XDG_RUNTIME_DIR", "/tmp")) / "wallpaper-watch.lock"
+
+SET_RE = re.compile(r"^set:\s+(\S+)\s+\((.*)\)\s*$")
+TARGET_RE = re.compile(r"/(last-image|image-path)$")
+
+
+def log(message: str) -> None:
+    print(f"wallpaper-watch: {message}", flush=True)
+
+
+def main() -> None:
+    if not SETTER.is_file():
+        log(f"missing {SETTER}")
+        return
+
+    # Ensure only one watcher runs (autostart + manual launches).
+    LOCK_PATH.parent.mkdir(parents=True, exist_ok=True)
+    lock = open(LOCK_PATH, "w")
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        log("another instance is already running")
+        return
+    lock.write(str(os.getpid()))
+    lock.flush()
+
+    last_applied: str | None = None
+
+    command = ["xfconf-query", "-c", CHANNEL, "-m", "-v"]
+    if shutil.which("stdbuf"):
+        command = ["stdbuf", "-oL", "-eL", *command]
+
+    while True:
+        try:
+            process = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.DEVNULL,
+                text=True,
+                bufsize=1,
+            )
+        except OSError as error:
+            log(f"cannot start xfconf-query: {error}")
+            time.sleep(2)
+            continue
+
+        log("watching xfce4-desktop for wallpaper changes")
+
+        try:
+            assert process.stdout is not None
+            for line in process.stdout:
+                match = SET_RE.match(line.rstrip("\n"))
+                if not match:
+                    continue
+
+                prop, value = match.groups()
+                if not TARGET_RE.search(prop):
+                    continue
+
+                candidate = Path(value.strip()).expanduser()
+                if not candidate.is_file():
+                    continue
+                if candidate.suffix.lower() not in IMAGE_SUFFIXES:
+                    continue
+
+                resolved = str(candidate.resolve())
+                if resolved == last_applied:
+                    continue
+
+                last_applied = resolved
+                log(f"applying {resolved}")
+                subprocess.run([str(SETTER), resolved], check=False)
+        except KeyboardInterrupt:
+            process.terminate()
+            return
+        finally:
+            if process.poll() is None:
+                process.terminate()
+                try:
+                    process.wait(timeout=2)
+                except subprocess.TimeoutExpired:
+                    process.kill()
+
+        time.sleep(1)
+
+
+if __name__ == "__main__":
+    main()

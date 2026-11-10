@@ -1,0 +1,172 @@
+==========================================================
+              HYPRLAND KEYBOARD SHORTCUTS
+==========================================================
+  SUPER = Windows key (main modifier)
+  Config: ~/.config/hypr/hyprland.lua
+  Updated: 2026-11-10
+==========================================================
+
+----------------------------------------------------------
+  DEFAULT APPS
+----------------------------------------------------------
+  Terminal               terminator
+  Browser                google chrome
+  File manager           thunar
+
+----------------------------------------------------------
+  APPLICATIONS
+----------------------------------------------------------
+  SUPER + T              Open terminal (terminator)
+  SUPER + B              Open browser (google chrome)
+  SUPER + F              Open file manager (thunar)
+  SUPER + Space          Search & launch apps (rofi)
+  SUPER + SHIFT + Space  Run a command (rofi)
+
+----------------------------------------------------------
+  SYSTEM
+----------------------------------------------------------
+  SUPER + L              Lock screen
+  SUPER + N              Toggle notification center
+  SUPER + X              Power menu (lock/logout/suspend/reboot/shutdown)
+  SUPER + SHIFT + B      Show / hide Waybar
+  SUPER + M              Exit Hyprland (log out)
+
+----------------------------------------------------------
+  WINDOWS
+----------------------------------------------------------
+  SUPER + C              Close focused window
+  SUPER + SHIFT + F      Toggle fullscreen for focused tile
+  SUPER + SHIFT + V      Toggle floating mode
+  SUPER + P              Toggle pseudo-tiling
+  SUPER + J              Toggle split direction (dwindle)
+
+----------------------------------------------------------
+  SCREENSHOT  (Windows Snipping Tool style)
+----------------------------------------------------------
+  SUPER + SHIFT + S      Select an area, then save + copy it
+  Click notification     Open the screenshot
+  "Open folder" button   Open ~/Pictures/Screenshots
+  Esc (while selecting)  Cancel the screenshot
+
+  Saved to:  ~/Pictures/Screenshots/Screenshot_<date>_<time>.png
+  Also copied to the clipboard automatically (image/png)
+
+----------------------------------------------------------
+  CLIPBOARD HISTORY  (Windows Win+V style)
+----------------------------------------------------------
+  SUPER + V              Open clipboard history
+  Type                   Search the history
+  Enter                  Auto-paste the item into the focused app
+  Ctrl + Delete          Delete the selected item
+  Ctrl + Shift + Delete  Clear the entire history
+  Esc                    Close the history
+
+  Selecting an item pastes it straight into the app you were typing in
+  (Ctrl+V, or Ctrl+Shift+V in terminals), just like Windows Win+V.
+  History persists across reboots and supports text + images.
+
+----------------------------------------------------------
+  WALLPAPER
+----------------------------------------------------------
+  Thunar → right-click an image → "Set as wallpaper"
+     Applies the image immediately as the Hyprland wallpaper
+     and remembers it for the next login/reboot.
+
+  Works with the image types Thunar offers: PNG, JPG/JPEG, SVG.
+  For other formats, run in a terminal:
+     wallpaper-set ~/Pictures/example.webp
+
+  The choice is stored in ~/.config/hypr/hyprpaper.conf.
+
+  If the menu item is missing, open the image's folder in Thunar
+  (SUPER + F), select the file, and right-click it.
+
+----------------------------------------------------------
+  FOCUS
+----------------------------------------------------------
+  SUPER + Left           Focus window to the left
+  SUPER + Right          Focus window to the right
+  SUPER + Up             Focus window above
+  SUPER + Down           Focus window below
+
+----------------------------------------------------------
+  WORKSPACES
+----------------------------------------------------------
+  SUPER + 1 ... 9, 0     Switch to workspace 1 ... 10
+  SUPER + SHIFT + 1..0   Move window to workspace 1 ... 10
+  SUPER + S              Toggle special workspace (scratchpad)
+  SUPER + ALT + S        Move window to special workspace
+  SUPER + Scroll down    Next workspace
+  SUPER + Scroll up      Previous workspace
+
+----------------------------------------------------------
+  MOUSE
+----------------------------------------------------------
+  SUPER + Left drag      Move window
+  SUPER + Right drag     Resize window
+
+----------------------------------------------------------
+  MULTIMEDIA KEYS
+----------------------------------------------------------
+  Volume Up / Down       Volume +/-  5%
+  Volume Mute            Mute / unmute output
+  Mic Mute               Mute / unmute microphone
+  Brightness Up / Down   Screen brightness +/- 5%
+  Media Next / Prev      Next / previous track
+  Media Play / Pause     Play / pause media
+
+----------------------------------------------------------
+  TOUCHPAD GESTURES
+----------------------------------------------------------
+  3-finger swipe         Switch workspace (horizontal)
+
+----------------------------------------------------------
+  WAYBAR (MOUSE)
+----------------------------------------------------------
+  Click window icon      Focus that window
+  Middle-click icon      Close that window
+  (Icons show only windows on the active workspace)
+  Click workspace        Switch to workspace
+  Right-click workspace  Close workspace
+  Scroll on workspaces   Previous / next workspace
+  Click clock            Open clock + calendar flyout (A.D. + B.S.)
+  Click network icon     Network Connections
+  Click Bluetooth icon   Blueman
+  Click volume icon      pavucontrol (audio settings)
+  Right-click volume     Mute / unmute
+  Scroll on volume       Volume +/- 2%
+  Click tray icons       Normal app tray actions
+
+----------------------------------------------------------
+  CLOCK / CALENDAR FLYOUT
+----------------------------------------------------------
+  A.D. / B.S. buttons    Switch between English and Nepali calendar
+  < / > arrows           Previous / next month (both calendars)
+  Scroll on calendar     Previous / next month
+  Click month heading    Jump back to today (B.S. view)
+  Left / Right keys      Previous / next Nepali month (B.S. view)
+  Home (or T)            Jump back to today's Nepali month
+  Esc / click away       Close the flyout
+
+  The B.S. view shows Nepali month names, Devanagari day numbers,
+  adjoining-month days dimmed, and today highlighted.
+
+----------------------------------------------------------
+  ROFI LAUNCHER
+----------------------------------------------------------
+  SUPER + Space          Search and launch apps
+  SUPER + SHIFT + Space  Run a shell command
+  Type                   Filter apps / type a command
+  Enter                  Launch app / execute command
+  Esc                    Close launcher
+
+----------------------------------------------------------
+  POWER MENU (SUPER + X)
+----------------------------------------------------------
+  Lock                   Lock screen
+  Log out                Exit Hyprland
+  Suspend                Lock + suspend
+  Reboot                 Reboot (asks Yes / No)
+  Shut down              Power off (asks Yes / No)
+
+==========================================================

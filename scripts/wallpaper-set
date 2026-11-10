@@ -1,0 +1,102 @@
+#!/usr/bin/env bash
+# Set the Hyprland wallpaper now and persist it for the next hyprpaper start.
+#
+# Usage: wallpaper-set /path/to/image
+
+set -uo pipefail
+
+notify_error() {
+    command -v notify-send >/dev/null 2>&1 && \
+        notify-send -a "Wallpaper" -u critical "Could not set wallpaper" "$1"
+    echo "wallpaper-set: $1" >&2
+}
+
+if [[ $# -lt 1 ]]; then
+    echo "Usage: $(basename "$0") <image-path>" >&2
+    exit 2
+fi
+
+image="$(realpath -e -- "$1" 2>/dev/null)" || {
+    notify_error "File not found: $1"
+    exit 1
+}
+
+[[ -f "$image" ]] || {
+    notify_error "Not a file: $image"
+    exit 1
+}
+
+case "${image,,}" in
+    *.png|*.jpg|*.jpeg|*.webp|*.bmp|*.jxl|*.avif) ;;
+    *)
+        notify_error "Unsupported image type: $(basename "$image")"
+        exit 1
+        ;;
+esac
+
+# Apply to every current monitor, plus the fallback target.
+mapfile -t monitors < <(
+    hyprctl monitors -j 2>/dev/null | python3 -c '
+import json, sys
+try:
+    for monitor in json.load(sys.stdin):
+        print(monitor.get("name", ""))
+except Exception:
+    pass
+'
+)
+
+for monitor in "${monitors[@]}"; do
+    [[ -n "$monitor" ]] || continue
+    hyprctl hyprpaper wallpaper "$monitor, $image, cover" >/dev/null 2>&1
+done
+hyprctl hyprpaper wallpaper ", $image, cover" >/dev/null 2>&1
+
+# Verify that hyprpaper actually applied it.
+if ! hyprctl hyprpaper listactive 2>/dev/null | grep -qF -- "$image"; then
+    notify_error "hyprpaper did not accept the wallpaper (is it running?)"
+    exit 1
+fi
+
+# Persist the choice so it survives a reboot / hyprpaper restart.
+CONF="$HOME/.config/hypr/hyprpaper.conf"
+python3 - "$CONF" "$image" <<'PY'
+import re
+import sys
+from pathlib import Path
+
+conf = Path(sys.argv[1])
+image = sys.argv[2]
+
+if conf.exists():
+    lines = conf.read_text().splitlines()
+else:
+    lines = [
+        "wallpaper {",
+        "    monitor   =",
+        "    fit_mode  = cover",
+        "}",
+        "splash = false",
+        "ipc = on",
+    ]
+
+out = []
+for line in lines:
+    if re.match(r"^\s*path\s*=", line):
+        indent = line[: len(line) - len(line.lstrip())]
+        out.append(f"{indent}path      = {image}")
+    else:
+        out.append(line)
+
+if not any(re.match(r"^\s*path\s*=", line) for line in out):
+    for index, line in enumerate(out):
+        if re.match(r"^\s*monitor\s*=", line):
+            indent = line[: len(line) - len(line.lstrip())]
+            out.insert(index + 1, f"{indent}path      = {image}")
+            break
+
+conf.parent.mkdir(parents=True, exist_ok=True)
+conf.write_text("\n".join(out).rstrip() + "\n")
+PY
+
+exit 0

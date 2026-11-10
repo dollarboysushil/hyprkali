@@ -1,0 +1,51 @@
+#!/bin/sh
+# hypr-input-rebind - re-announce input devices after Hyprland has started.
+#
+# Workaround for Aquamarine < 0.16: devices that are present before the
+# backend is marked ready are never emitted to the compositor, because
+# CLibinputDevice::init() gates newKeyboard/newPointer on backend->ready and
+# CSession::onReady() is empty. The DRM backend dispatches libinput's queued
+# device-added events while it waits (up to 5s) for the seat to become active,
+# so everything attached at boot/login is silently dropped. This affects both
+# built-in and USB input; replugging a USB device makes it work again.
+#
+# Running this after Hyprland's "start" event makes libinput re-emit the
+# devices; since the backend is ready by then, Hyprland receives them.
+#
+# Installed by scripts/fix-input-devices.sh to /usr/local/bin/hypr-input-rebind
+# and run as root from the Hyprland autostart hook.
+set -u
+
+[ "$(id -u)" -eq 0 ] || { echo "hypr-input-rebind: must be root" >&2; exit 1; }
+
+# exec-once fires after the first frame; give the session a moment to settle.
+sleep 1
+
+# 1) Replay udev add/remove for the input subsystem. libinput turns the
+#    synthetic remove into device_removed and the add into device_added.
+udevadm trigger --subsystem-match=input --action=remove
+sleep 1
+udevadm trigger --subsystem-match=input --action=add
+sleep 1
+
+# 2) Belt and braces for built-in PS/2 and I2C-HID devices: rebind their
+#    kernel driver so the event nodes are recreated even if the udev replay
+#    was ignored for them.
+for d in /sys/bus/serio/drivers/atkbd/serio*; do
+    [ -e "$d" ] || continue
+    name=${d##*/}
+    echo -n "$name" > /sys/bus/serio/drivers/atkbd/unbind 2>/dev/null || continue
+    sleep 0.3
+    echo -n "$name" > /sys/bus/serio/drivers/atkbd/bind 2>/dev/null || true
+done
+
+for d in /sys/bus/i2c/drivers/i2c_hid_acpi/i2c-*; do
+    [ -e "$d" ] || continue
+    name=${d##*/}
+    echo -n "$name" > /sys/bus/i2c/drivers/i2c_hid_acpi/unbind 2>/dev/null || continue
+    sleep 0.3
+    echo -n "$name" > /sys/bus/i2c/drivers/i2c_hid_acpi/bind 2>/dev/null || true
+done
+
+logger -t hypr-input-rebind "input devices re-announced after Hyprland start"
+exit 0

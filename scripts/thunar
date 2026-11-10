@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Thunar's built-in "Set as wallpaper" plugin only writes its backdrop setting
+# when it thinks it is running under XFCE. Advertise that to Thunar only; the
+# wallpaper-watch daemon forwards the setting to hyprpaper.
+export XDG_CURRENT_DESKTOP=XFCE
+exec /usr/bin/thunar "$@"
